@@ -18,6 +18,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const isWatchPage = pathname?.startsWith('/watch/');
+
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   return (
@@ -25,9 +27,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Navbar toggleSidebar={toggleSidebar} />
       
       <div className="flex flex-1 pt-14">
-        <Sidebar isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(false)} />
+        {!isWatchPage && <Sidebar isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(false)} />}
         
-        <main className="flex-1 lg:pl-64 transition-all duration-300">
+        <main className={`flex-1 transition-all duration-300 ${!isWatchPage ? 'lg:pl-64' : ''}`}>
             {children}
         </main>
       </div>

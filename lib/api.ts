@@ -7,13 +7,19 @@ const api = axios.create({
   },
 });
 
-// Add a request interceptor to attach the token
+// Add a request interceptor to attach the token and channel ID
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const activeChannelId = localStorage.getItem('activeChannelId');
+    if (activeChannelId) {
+      config.headers['X-Channel-Id'] = activeChannelId;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

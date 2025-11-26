@@ -35,6 +35,7 @@ export interface Video {
     channelId: number;
     channel: Channel;
     createdAt: string;
+    duration: number;
 }
 
 export interface Playlist {

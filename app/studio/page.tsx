@@ -82,7 +82,7 @@ export default function StudioPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
 
 
-      <main className="container py-6">
+      <main className="container py-6 px-6">
         <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Creator Studio</h1>
             <Link href="/upload">

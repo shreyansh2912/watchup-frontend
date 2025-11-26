@@ -16,12 +16,40 @@ import { Video } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTimeAgo } from "@/lib/utils";
 import VideoPlayer from '@/components/VideoPlayer';
+import ShareModal from '@/components/ShareModal';
+import Navbar from '@/components/Navbar';
+import AIChatSidebar, { Message } from '@/components/AIChatSidebar';
+import { Flag } from 'lucide-react';
+import ReportModal from '@/components/ReportModal';
 
 export default function WatchPage() {
   const { id } = useParams();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const { user } = useAuth();
+
+  const [messages, setMessages] = useState<Message[]>([
+    { id: 1, role: "assistant", content: "Hello! I'm your AI assistant. Ask me anything about the video!" },
+  ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  const handleSendMessage = (content: string) => {
+    const userMsg: Message = { id: Date.now(), role: "user", content };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsChatLoading(true);
+
+    // Mock response
+    setTimeout(() => {
+      const botMsg: Message = { 
+        id: Date.now() + 1, 
+        role: "assistant", 
+        content: "That's an interesting point! Tell me more about what you think." 
+      };
+      setMessages((prev) => [...prev, botMsg]);
+      setIsChatLoading(false);
+    }, 1500);
+  };
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -84,21 +112,22 @@ export default function WatchPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
        <Navbar />
 
-      <main className="container py-6 max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Video Player */}
+      <main className="container py-6 max-w-[1800px] mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-9 space-y-4">
             <VideoPlayer 
                 src={video.publicId && video.url ? 
-                    video.url.replace('/upload/', '/upload/sp_hd/').replace(/\.[^/.]+$/, ".m3u8") : 
+                    video.url.replace('/upload/', '/upload/f_m3u8/').replace(/\.[^/.]+$/, ".m3u8") : 
                     (video.url || '')
                 }
                 poster={video.thumbnailUrl}
                 autoPlay
+                chatProps={{
+                    messages,
+                    onSendMessage: handleSendMessage,
+                    isLoading: isChatLoading
+                }}
             />
-
-            {/* Video Info */}
             <div>
               <h1 className="text-2xl font-bold line-clamp-2">{video.title}</h1>
               <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
@@ -122,8 +151,12 @@ export default function WatchPage() {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                   <ShareModal videoId={video.id.toString()} title={video.title} />
                    <LikeButton videoId={video.id} />
                    <SaveToPlaylist videoId={video.id} />
+                   <Button variant="ghost" size="icon" onClick={() => setIsReportOpen(true)} title="Report Video">
+                      <Flag className="w-5 h-5" />
+                   </Button>
                 </div>
               </div>
             </div>
@@ -141,14 +174,22 @@ export default function WatchPage() {
             <CommentSection videoId={video.id} />
           </div>
 
-          {/* Sidebar (Recommendations) */}
-          <div className="lg:col-span-1">
-             <h3 className="font-semibold mb-4">Up Next</h3>
-             {/* Placeholder for related videos */}
-             <div className="text-gray-500 text-sm">No related videos yet.</div>
+          {/* AI Chat Sidebar */}
+          <div className="lg:col-span-3">
+             <AIChatSidebar 
+                messages={messages} 
+                onSendMessage={handleSendMessage} 
+                isLoading={isChatLoading} 
+             />
           </div>
         </div>
       </main>
+      
+      <ReportModal 
+        videoId={video.id} 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
+      />
     </div>
   );
 }

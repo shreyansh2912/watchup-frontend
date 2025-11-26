@@ -4,16 +4,29 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { cn } from '@/lib/utils';
 
+import { Pen as PenIcon, Maximize, Minimize, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import CanvasOverlay from './CanvasOverlay';
+import AIChatSidebar, { Message } from './AIChatSidebar';
+
 interface VideoPlayerProps {
   src: string; // The HLS (.m3u8) URL or standard video URL
   poster?: string;
   className?: string;
   autoPlay?: boolean;
+  chatProps?: {
+    messages: Message[];
+    onSendMessage: (message: string) => void;
+    isLoading: boolean;
+  };
 }
 
-export default function VideoPlayer({ src, poster, className, autoPlay = false }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, className, autoPlay = false, chatProps }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isHlsSupported, setIsHlsSupported] = useState(false);
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -73,15 +86,130 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false }
     }
   }, [src, autoPlay]);
 
+
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      try {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error("Error attempting to enable fullscreen:", err);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
+
+  const [isMuted, setIsMuted] = useState(false);
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleVolumeChange = () => {
+      setIsMuted(video.muted);
+    };
+
+    video.addEventListener('volumechange', handleVolumeChange);
+    
+    // Set initial state
+    setIsMuted(video.muted);
+
+    return () => {
+      video.removeEventListener('volumechange', handleVolumeChange);
+    };
+  }, []);
+
   return (
-    <div className={cn("relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg", className)}>
+    <div ref={containerRef} className={cn("relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg group", className)}>
       <video
         ref={videoRef}
         poster={poster}
         controls
+        controlsList="nofullscreen"
         className="w-full h-full"
         playsInline
       />
+
+      {/* Controls Overlay (Top Left) */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Canvas Toggle */}
+        <button
+            onClick={() => setIsCanvasOpen(true)}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg backdrop-blur-sm"
+            title="Open Canvas"
+        >
+            <PenIcon className="w-5 h-5" />
+        </button>
+
+        {/* AI Chat Toggle - Only in Fullscreen */}
+        {chatProps && isFullscreen && (
+            <button
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg backdrop-blur-sm"
+                title="AI Assistant"
+            >
+                <Sparkles className="w-5 h-5 text-yellow-400" />
+            </button>
+        )}
+
+        {/* Volume Toggle */}
+        <button
+            onClick={toggleMute}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg backdrop-blur-sm"
+            title={isMuted ? "Unmute" : "Mute"}
+        >
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
+
+        {/* Custom Fullscreen Toggle (Ensures overlays stay visible) */}
+        <button
+            onClick={toggleFullscreen}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg backdrop-blur-sm"
+            title={isFullscreen ? "Exit Fullscreen" : "Interactive Fullscreen"}
+        >
+            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Canvas Overlay */}
+      {isCanvasOpen && (
+        <CanvasOverlay onClose={() => setIsCanvasOpen(false)} />
+      )}
+
+      {/* AI Chat Overlay */}
+      {chatProps && (
+        <AIChatSidebar
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            messages={chatProps.messages}
+            onSendMessage={chatProps.onSendMessage}
+            isLoading={chatProps.isLoading}
+            variant="overlay"
+        />
+      )}
     </div>
   );
 }
