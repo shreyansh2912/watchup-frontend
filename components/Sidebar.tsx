@@ -17,7 +17,9 @@ import {
   User, 
   History,
   Menu,
-  LayoutGrid
+  LayoutGrid,
+  FolderOpen,
+  Film
 } from 'lucide-react';
 
 interface SubscribedChannel {
@@ -49,6 +51,8 @@ export default function Sidebar({ isOpen, toggle }: { isOpen: boolean; toggle: (
     { href: '/search', label: 'Explore', icon: Compass },
     { href: '/history', label: 'History', icon: History },
     { href: '/playlists', label: 'Playlists', icon: PlaySquare },
+    { href: '/shorts', label: 'Shorts', icon: Film },
+    { href: '/documents', label: 'My Documents', icon: FolderOpen },
   ];
 
   if (user) {

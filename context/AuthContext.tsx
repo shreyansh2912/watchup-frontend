@@ -80,7 +80,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
     // Channels will be fetched by the useEffect above
-    router.push('/'); // Redirect to home after login
+    
+    if (newUser.hasPassword === false) {
+        router.push('/set-password');
+    } else {
+        router.push('/'); // Redirect to home after login
+    }
   }, [router]);
 
   const logout = useCallback(() => {

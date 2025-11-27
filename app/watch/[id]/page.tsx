@@ -151,7 +151,7 @@ export default function WatchPage() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                   <ShareModal videoId={video.id.toString()} title={video.title} />
+                   <ShareModal videoId={video.slug || video.id.toString()} title={video.title} />
                    <LikeButton videoId={video.id} />
                    <SaveToPlaylist videoId={video.id} />
                    <Button variant="ghost" size="icon" onClick={() => setIsReportOpen(true)} title="Report Video">

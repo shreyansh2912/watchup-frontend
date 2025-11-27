@@ -5,7 +5,7 @@ import { formatTimeAgo, formatDuration } from "@/lib/utils"
 
 export default function VideoCard({ video }: { video: Video }) {
   return (
-    <Link href={`/watch/${video.id}`}>
+    <Link href={`/watch/${video.slug || video.id}`}>
       <Card className="h-full group hover:shadow-lg transition-all duration-300 cursor-pointer border-transparent bg-transparent hover:bg-accent p-0 gap-0 overflow-hidden">
         <div className="relative h-48 w-full bg-muted group-hover:ring-2 group-hover:ring-primary transition-all duration-300">
           {video.thumbnailUrl ? (

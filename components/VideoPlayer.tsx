@@ -25,8 +25,11 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHlsSupported, setIsHlsSupported] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [isCanvasMinimized, setIsCanvasMinimized] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -35,12 +38,18 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
     // Check if HLS is supported natively (Safari)
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
+      video.addEventListener('error', (e) => {
+         setError("Error loading video. You might need to join the channel to watch this.");
+      });
       setIsHlsSupported(true);
     } 
     // Check if HLS.js is supported
     else if (Hls.isSupported()) {
       const hls = new Hls({
         capLevelToPlayerSize: true, // Auto-adjust quality based on player size
+        xhrSetup: function(xhr, url) {
+            xhr.withCredentials = true; // Send cookies/auth headers
+        }
       });
       
       hls.loadSource(src);
@@ -53,11 +62,22 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.response && (data.response.code === 403 || data.response.code === 401)) {
+            setError("Access Denied. This video is for members only.");
+            hls.destroy();
+            return;
+        }
+
         if (data.fatal) {
             switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
                     console.error("Network error encountered", data);
-                    hls.startLoad();
+                    if (data.response && data.response.code === 403) {
+                         setError("Access Denied. Members Only.");
+                         hls.destroy();
+                    } else {
+                        hls.startLoad();
+                    }
                     break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
                     console.error("Media error encountered", data);
@@ -77,70 +97,25 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
         hls.destroy();
       };
     } else {
-        // Fallback for browsers with no HLS support (very rare now for modern ones, but good to have)
-        // If the src is a .m3u8 and no HLS support, this will fail. 
-        // Ideally, we should provide a .mp4 fallback here if possible, 
-        // but for this implementation we assume HLS or native support.
+        // Fallback
         console.warn("HLS is not supported in this browser.");
-        video.src = src; // Try direct load just in case
+        video.src = src;
+        video.onerror = () => {
+            setError("Error loading video.");
+        };
     }
   }, [src, autoPlay]);
 
-
-
-  const toggleFullscreen = async () => {
-    if (!containerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      try {
-        await containerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      } catch (err) {
-        console.error("Error attempting to enable fullscreen:", err);
-      }
-    } else {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
-
-  const [isMuted, setIsMuted] = useState(false);
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleVolumeChange = () => {
-      setIsMuted(video.muted);
-    };
-
-    video.addEventListener('volumechange', handleVolumeChange);
-    
-    // Set initial state
-    setIsMuted(video.muted);
-
-    return () => {
-      video.removeEventListener('volumechange', handleVolumeChange);
-    };
-  }, []);
+  if (error) {
+      return (
+          <div className={cn("relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg flex items-center justify-center text-white", className)}>
+              <div className="text-center p-4">
+                  <p className="text-xl font-bold mb-2">Video Unavailable</p>
+                  <p>{error}</p>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div ref={containerRef} className={cn("relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg group", className)}>
@@ -157,7 +132,10 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
       <div className="absolute top-4 left-4 z-20 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Canvas Toggle */}
         <button
-            onClick={() => setIsCanvasOpen(true)}
+            onClick={() => {
+                setIsCanvasOpen(true);
+                setIsCanvasMinimized(false);
+            }}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg backdrop-blur-sm"
             title="Open Canvas"
         >
@@ -174,8 +152,6 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
                 <Sparkles className="w-5 h-5 text-yellow-400" />
             </button>
         )}
-
-        {/* Volume Toggle */}
         <button
             onClick={toggleMute}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg backdrop-blur-sm"
@@ -196,7 +172,11 @@ export default function VideoPlayer({ src, poster, className, autoPlay = false, 
 
       {/* Canvas Overlay */}
       {isCanvasOpen && (
-        <CanvasOverlay onClose={() => setIsCanvasOpen(false)} />
+        <CanvasOverlay 
+            onClose={() => setIsCanvasOpen(false)} 
+            onMinimize={() => setIsCanvasMinimized(true)}
+            className={isCanvasMinimized ? "hidden" : ""}
+        />
       )}
 
       {/* AI Chat Overlay */}

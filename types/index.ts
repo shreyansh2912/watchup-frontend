@@ -3,12 +3,34 @@ export interface User {
     username: string;
     email: string;
     avatar?: string | null;
+    hasPassword?: boolean;
 }
 
 export interface Channel {
     name: string;
     avatarUrl: string | null;
     handle?: string;
+}
+
+export interface Video {
+    id: number;
+    title: string;
+    description?: string;
+    url?: string;
+    publicId?: string;
+    thumbnailUrl?: string;
+    views: number;
+    channelId: number;
+    createdAt: string;
+    duration: number;
+    isShort: boolean;
+    slug?: string;
+    channel: {
+        id: number;
+        name: string;
+        avatarUrl: string | null;
+        handle: string;
+    };
 }
 
 export interface ChannelDetails {
@@ -22,20 +44,6 @@ export interface ChannelDetails {
     isSubscribed: boolean;
     userId: number;
     videos: Video[];
-}
-
-export interface Video {
-    id: number;
-    title: string;
-    description?: string;
-    url?: string;
-    publicId?: string;
-    thumbnailUrl?: string;
-    views: number;
-    channelId: number;
-    channel: Channel;
-    createdAt: string;
-    duration: number;
 }
 
 export interface Playlist {

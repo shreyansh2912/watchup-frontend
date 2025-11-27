@@ -101,11 +101,21 @@ export default function Navbar({ toggleSidebar }: { toggleSidebar?: () => void }
                 <ChannelSwitcher />
               </div>
 
-              <Link href="/upload">
-                <Button variant="ghost" size="icon" title="Upload Video">
-                  <Upload className="h-5 w-5" />
-                </Button>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" title="Upload">
+                    <Upload className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-background/95 backdrop-blur-xl border-border">
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/upload">Upload Video</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/shorts/upload">Upload Short</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

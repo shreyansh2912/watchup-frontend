@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [visibility, setVisibility] = useState('public');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -39,6 +40,7 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
+    formData.append('visibility', visibility);
     formData.append('videoFile', videoFile);
     formData.append('thumbnail', thumbnail);
 
@@ -115,6 +117,20 @@ export default function UploadPage() {
                 onChange={(e) => handleFileChange(e, 'thumbnail')}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="visibility">Visibility</Label>
+              <select
+                id="visibility"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value)}
+              >
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+                <option value="members-only">Members Only</option>
+              </select>
             </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}

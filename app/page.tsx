@@ -23,14 +23,13 @@ export default function Home() {
   const fetchVideos = async (pageNum: number) => {
     try {
       setLoading(true);
-      const res = await api.get(`/videos?page=${pageNum}&limit=30`);
+      const res = await api.get(`/videos?page=${pageNum}&limit=15`);
       if (res.data.success) {
         setVideos((prev) => {
-            // Filter out duplicates just in case
             const newVideos = res.data.data.filter((v: Video) => !prev.some(p => p.id === v.id));
             return [...prev, ...newVideos];
         });
-        setHasMore(res.data.data.length === 30);
+        setHasMore(res.data.data.length === 15);
       }
     } catch (error) {
       console.error("Error fetching videos:", error);

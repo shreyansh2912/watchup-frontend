@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, FilePlus, FolderOpen, Pen, Square, MousePointer, Save, ArrowLeft, ZoomIn, ZoomOut, Type, Trash2, Minus } from 'lucide-react';
+import { X, FilePlus, FolderOpen, Pen, Square, MousePointer, Save, ArrowLeft, ZoomIn, ZoomOut, Type, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { cn } from '@/lib/utils';
+import Navbar from '@/components/Navbar';
+import { useAuth } from '@/context/AuthContext';
 
 interface CanvasFile {
   id: number;
@@ -38,12 +39,8 @@ interface DrawingElement {
   endY?: number; // For line/arrow
 }
 
-import { useAuth } from '@/context/AuthContext';
-
-// ... imports
-
-export default function CanvasOverlay({ onClose, onMinimize, className }: { onClose: () => void, onMinimize?: () => void, className?: string }) {
-  const { token } = useAuth();
+export default function DocumentsPage() {
+  const { token, user } = useAuth();
   const [view, setView] = useState<'manager' | 'editor'>('manager');
   const [files, setFiles] = useState<CanvasFile[]>([]);
   const [currentFile, setCurrentFile] = useState<CanvasFile | null>(null);
@@ -113,7 +110,6 @@ export default function CanvasOverlay({ onClose, onMinimize, className }: { onCl
       // Update local state
       setFiles(files.map(f => f.id === currentFile.id ? { ...f, data: elements } : f));
       toast.success("Saved!");
-      onClose();
     } catch (err) {
       console.error("Failed to save file", err);
     }
@@ -239,6 +235,7 @@ export default function CanvasOverlay({ onClose, onMinimize, className }: { onCl
     if (tool === 'eraser') {
         setIsDrawing(true);
         // Delete element under cursor
+        const point = getCanvasPoint(e);
         const newElements = elements.filter(el => {
             if (el.type === 'rect' || el.type === 'circle') {
                 return !(point.x >= (el.x || 0) && point.x <= (el.x || 0) + (el.width || 0) &&
@@ -368,9 +365,22 @@ export default function CanvasOverlay({ onClose, onMinimize, className }: { onCl
       setTextInput(null);
   }
 
+  if (!user) {
+      return (
+          <div className="min-h-screen bg-white dark:bg-gray-950">
+              <Navbar />
+              <div className="container py-10 text-center">
+                  <h1 className="text-2xl font-bold mb-4">Please login to view your documents</h1>
+              </div>
+          </div>
+      );
+  }
+
   return (
-    <div className={cn("absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm", className)}>
-      <div className="w-[90%] h-[90%] bg-white dark:bg-gray-900 rounded-xl shadow-2xl flex flex-col overflow-hidden border border-border">
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
+      <Navbar />
+      
+      <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-muted/30">
           <div className="flex items-center gap-4">
@@ -380,18 +390,8 @@ export default function CanvasOverlay({ onClose, onMinimize, className }: { onCl
               </Button>
             )}
             <h2 className="font-bold text-lg">
-              {view === 'manager' ? 'File Manager' : currentFile?.name || 'Untitled'}
+              {view === 'manager' ? 'My Documents' : currentFile?.name || 'Untitled'}
             </h2>
-          </div>
-          <div className="flex items-center gap-1">
-            {onMinimize && (
-                <Button variant="ghost" size="icon" onClick={onMinimize} title="Minimize">
-                    <Minus className="w-6 h-6" />
-                </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={onClose} title="Close">
-                <X className="w-6 h-6" />
-            </Button>
           </div>
         </div>
 
@@ -560,7 +560,7 @@ export default function CanvasOverlay({ onClose, onMinimize, className }: { onCl
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

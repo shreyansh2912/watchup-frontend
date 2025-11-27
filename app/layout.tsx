@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { AuthProvider } from "@/context/AuthContext";
 import AppShell from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -41,6 +42,7 @@ export default function RootLayout({
             <AppShell>
               {children}
             </AppShell>
+            <Toaster />
           </ThemeProvider>
         </AuthProvider>
       </body>
