@@ -15,6 +15,7 @@ export default function CreateCoursePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('0');
+  const [visibility, setVisibility] = useState('public');
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -33,7 +34,8 @@ export default function CreateCoursePage() {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('price', price);
+    formData.append('price', visibility === 'paid' ? price : '0');
+    formData.append('visibility', visibility);
     if (thumbnail) {
       formData.append('thumbnail', thumbnail);
     }
@@ -105,17 +107,33 @@ export default function CreateCoursePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Price (INR)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0 for free"
-                  required
-                />
+                <Label htmlFor="visibility">Visibility</Label>
+                <select
+                    id="visibility"
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="public">Public (Free)</option>
+                    <option value="members-only">Members Only</option>
+                    <option value="paid">Paid Course</option>
+                </select>
               </div>
+
+              {visibility === 'paid' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price (INR)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="Enter price"
+                      required
+                    />
+                  </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="thumbnail">Thumbnail</Label>

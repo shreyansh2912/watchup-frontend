@@ -19,6 +19,8 @@ interface Course {
     price: string;
     modules: any[];
     slug: string;
+    visibility: 'public' | 'members-only' | 'paid';
+    channelId: number;
 }
 
 export default function CourseLandingPage() {
@@ -91,9 +93,23 @@ export default function CourseLandingPage() {
                                     Go to Course
                                 </Button>
                             ) : (
-                                <Button size="lg" onClick={() => setShowPaymentModal(true)}>
-                                    Enroll Now - {Number(course.price) === 0 ? 'Free' : `₹${course.price}`}
-                                </Button>
+                                <>
+                                    {course.visibility === 'public' && (
+                                        <Button size="lg" onClick={() => router.push(`/learn/${course.slug}`)}>
+                                            Start Learning (Free)
+                                        </Button>
+                                    )}
+                                    {course.visibility === 'members-only' && (
+                                        <Button size="lg" onClick={() => router.push(`/channel/${course.channelId}/join`)}>
+                                            Join Channel to Access
+                                        </Button>
+                                    )}
+                                    {course.visibility === 'paid' && (
+                                        <Button size="lg" onClick={() => setShowPaymentModal(true)}>
+                                            Enroll Now - ₹{course.price}
+                                        </Button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
