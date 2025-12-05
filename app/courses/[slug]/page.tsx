@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import PaymentModal from '@/components/PaymentModal';
+// import PaymentModal from '@/components/PaymentModal'; // Payment Gateway Disabled
 import { CheckCircle, PlayCircle, Lock } from 'lucide-react';
 
 interface Course {
@@ -29,7 +29,7 @@ export default function CourseLandingPage() {
     const [course, setCourse] = useState<Course | null>(null);
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    // const [showPaymentModal, setShowPaymentModal] = useState(false); // Payment Gateway Disabled
     const { user } = useAuth();
     const router = useRouter();
 
@@ -104,11 +104,13 @@ export default function CourseLandingPage() {
                                             Join Channel to Access
                                         </Button>
                                     )}
+                                    {/* Payment Gateway Disabled
                                     {course.visibility === 'paid' && (
                                         <Button size="lg" onClick={() => setShowPaymentModal(true)}>
                                             Enroll Now - ₹{course.price}
                                         </Button>
                                     )}
+                                    */}
                                 </>
                             )}
                         </div>
@@ -155,6 +157,7 @@ export default function CourseLandingPage() {
                 </div>
             </div>
 
+            {/* Payment Gateway Disabled
             <PaymentModal 
                 isOpen={showPaymentModal} 
                 onClose={() => setShowPaymentModal(false)} 
@@ -162,6 +165,7 @@ export default function CourseLandingPage() {
                 price={Number(course.price)} 
                 title={course.title} 
             />
+            */}
         </div>
     );
 }

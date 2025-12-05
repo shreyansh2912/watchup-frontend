@@ -116,7 +116,7 @@ export default function CreateCoursePage() {
                 >
                     <option value="public">Public (Free)</option>
                     <option value="members-only">Members Only</option>
-                    <option value="paid">Paid Course</option>
+                    {/* <option value="paid">Paid Course</option> // Payment Gateway Disabled */}
                 </select>
               </div>
 
