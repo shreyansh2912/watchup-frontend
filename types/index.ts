@@ -57,3 +57,50 @@ export interface Playlist {
     };
     videos: Video[];
 }
+
+
+export interface StreamUser {
+    id: number;
+    username: string;
+    avatar: string | null;
+}
+
+export interface LiveStream {
+    id: number;
+    title: string;
+    description: string;
+    thumbnailUrl: string | null;
+    category: string;
+    viewerCount: number;
+    startedAt: string;
+    user: StreamUser;
+}
+
+export interface Stream {
+    id: number;
+    title: string;
+    description: string;
+    category: string;
+    chatEnabled: boolean;
+    recordStream: boolean;
+    status: 'live' | 'offline' | 'ended';
+    viewerCount: number;
+    peakViewers: number;
+    totalViews: number;
+    startedAt: string | null;
+    thumbnailUrl: string | null;
+}
+
+export interface StreamData {
+    channel: ChannelDetails;
+    user: User & { streamKey?: string; isLive?: boolean };
+    isLive: boolean;
+    stream: Stream | null;
+}
+
+export interface StreamStats {
+    status: 'live' | 'offline';
+    viewerCount: number;
+    peakViewers: number;
+    totalViews: number;
+}

@@ -11,11 +11,10 @@ import { Eye, EyeOff, RefreshCw, Copy, Check, Radio, Users, ExternalLink } from 
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import {Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const CATEGORIES = [
-    'Gaming', 'Music', 'Just Chatting', 'Education', 'Sports', 'Art', 'Technology', 'Cooking', 'Other'
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { STREAM_CATEGORIES, POLLING_INTERVALS, STREAM_SETTINGS } from '@/lib/constants';
+import { getRtmpUrl, getPlaybackUrl, handleClipboardCopy, extractApiData } from '@/lib/stream-utils';
+import type { Stream } from '@/types';
 
 export default function GoLivePage() {
     const { user } = useAuth();
@@ -44,7 +43,7 @@ export default function GoLivePage() {
     useEffect(() => {
         if (user) {
             fetchStreamData();
-            const interval = setInterval(checkLiveStatus, 5000); // Check every 5 seconds
+            const interval = setInterval(checkLiveStatus, POLLING_INTERVALS.STREAM_STATUS);
             return () => clearInterval(interval);
         }
     }, [user]);
@@ -57,8 +56,9 @@ export default function GoLivePage() {
 
             // Fetch current stream setup
             const streamRes = await api.get('/stream/current');
-            if (streamRes.data.data) {
-                const stream = streamRes.data.data;
+            const stream = extractApiData<Stream>(streamRes);
+            
+            if (stream) {
                 setCurrentStream(stream);
                 setTitle(stream.title || '');
                 setDescription(stream.description || '');
@@ -81,8 +81,9 @@ export default function GoLivePage() {
     const checkLiveStatus = async () => {
         try {
             const res = await api.get('/stream/current');
-            if (res.data.data) {
-                const stream = res.data.data;
+            const stream = extractApiData<Stream>(res);
+            
+            if (stream) {
                 setIsLive(stream.status === 'live');
                 setViewerCount(stream.viewerCount || 0);
                 setCurrentStream(stream);
@@ -107,7 +108,7 @@ export default function GoLivePage() {
                 chatEnabled,
                 recordStream,
             });
-            setCurrentStream(res.data.data);
+            setCurrentStream(extractApiData<Stream>(res));
             toast.success('Stream setup saved! Start streaming in your software.');
         } catch (error) {
             console.error('Error setting up stream:', error);
@@ -148,14 +149,11 @@ export default function GoLivePage() {
     };
 
     const copyToClipboard = (text: string, label: string) => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        toast.success(`${label} copied`);
-        setTimeout(() => setCopied(false), 2000);
+        handleClipboardCopy(text, label, toast, setCopied);
     };
 
     if (isLoading) {
-        return <div className=\"p-8 text-center\">Loading...</div>;
+        return <div className="p-8 text-center">Loading...</div>;
     }
 
     if (!user) {
@@ -163,34 +161,34 @@ export default function GoLivePage() {
         return null;
     }
 
-    const serverUrl = process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935/live';
-    const playbackUrl = user?.username ? `/live/${user.username}` : '';
+    const serverUrl = getRtmpUrl();
+    const playbackUrl = getPlaybackUrl(user?.username);
 
     return (
-        <div className=\"container mx-auto p-6 max-w-6xl space-y-6\">
+        <div className="container mx-auto p-6 max-w-6xl space-y-6">
             {/* Header */}
-            <div className=\"flex justify-between items-center\">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className=\"text-3xl font-bold\">Go Live</h1>
-                    <p className=\"text-muted-foreground\">Setup and manage your live stream</p>
+                    <h1 className="text-3xl font-bold">Go Live</h1>
+                    <p className="text-muted-foreground">Setup and manage your live stream</p>
                 </div>
                 {isLive && (
-                    <div className=\"flex items-center gap-4\">
-                        <div className=\"flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg animate-pulse\">
-                            <Radio className=\"h-5 w-5\" />
-                            <span className=\"font-bold\">LIVE</span>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg animate-pulse">
+                            <Radio className="h-5 w-5" />
+                            <span className="font-bold">LIVE</span>
                         </div>
-                        <div className=\"flex items-center gap-2 bg-muted px-4 py-2 rounded-lg\">
-                            <Users className=\"h-5 w-5\" />
-                            <span className=\"font-semibold\">{viewerCount}</span>
+                        <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-lg">
+                            <Users className="h-5 w-5" />
+                            <span className="font-semibold">{viewerCount}</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            <div className=\"grid gap-6 lg:grid-cols-3\">
+            <div className="grid gap-6 lg:grid-cols-3">
                 {/* Left Column - Stream Setup */}
-                <div className=\"lg:col-span-2 space-y-6\">
+                <div className="lg:col-span-2 space-y-6">
                     {/* Stream Info */}
                     <Card>
                         <CardHeader>
@@ -199,90 +197,90 @@ export default function GoLivePage() {
                                 Configure your stream before going live
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className=\"space-y-4\">
-                            <div className=\"space-y-2\">
-                                <Label htmlFor=\"title\">Title *</Label>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="title">Title *</Label>
                                 <Input 
-                                    id=\"title\"
+                                    id="title"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder=\"What's happening today?\"
-                                    maxLength={100}
+                                    placeholder="What's happening today?"
+                                    maxLength={STREAM_SETTINGS.TITLE_MAX_LENGTH}
                                     disabled={isLive}
                                 />
                             </div>
 
-                            <div className=\"space-y-2\">
-                                <Label htmlFor=\"description\">Description</Label>
+                            <div className="space-y-2">
+                                <Label htmlFor="description">Description</Label>
                                 <Textarea
-                                    id=\"description\"
+                                    id="description"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder=\"Tell viewers what this stream is about...\"
+                                    placeholder="Tell viewers what this stream is about..."
                                     rows={3}
                                     disabled={isLive}
                                 />
                             </div>
 
-                            <div className=\"space-y-2\">
-                                <Label htmlFor=\"category\">Category</Label>
+                            <div className="space-y-2">
+                                <Label htmlFor="category">Category</Label>
                                 <select
-                                    id=\"category\"
+                                    id="category"
                                     value={category}
                                     onChange={(e) => setCategory(e.target.value)}
-                                    className=\"flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background\"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                                     disabled={isLive}
                                 >
-                                    {CATEGORIES.map(cat => (
+                                    {STREAM_CATEGORIES.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                 </select>
                             </div>
 
-                            <div className=\"flex gap-4\">
-                                <label className=\"flex items-center gap-2 cursor-pointer\">
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
                                     <input
-                                        type=\"checkbox\"
+                                        type="checkbox"
                                         checked={chatEnabled}
                                         onChange={(e) => setChatEnabled(e.target.checked)}
-                                        className=\"rounded\"
+                                        className="rounded"
                                         disabled={isLive}
                                     />
-                                    <span className=\"text-sm\">Enable chat</span>
+                                    <span className="text-sm">Enable chat</span>
                                 </label>
-                                <label className=\"flex items-center gap-2 cursor-pointer\">
+                                <label className="flex items-center gap-2 cursor-pointer">
                                     <input
-                                        type=\"checkbox\"
+                                        type="checkbox"
                                         checked={recordStream}
                                         onChange={(e) => setRecordStream(e.target.checked)}
-                                        className=\"rounded\"
+                                        className="rounded"
                                         disabled={isLive}
                                     />
-                                    <span className=\"text-sm\">Save as VOD</span>
+                                    <span className="text-sm">Save as VOD</span>
                                 </label>
                             </div>
 
-                            <div className=\"flex gap-3 pt-4\">
+                            <div className="flex gap-3 pt-4">
                                 <Button 
                                     onClick={setupStream} 
                                     disabled={isSaving || isLive}
-                                    className=\"flex-1\"
+                                    className="flex-1"
                                 >
                                     {isSaving ? 'Saving...' : 'Save Setup'}
                                 </Button>
                                 {isLive && (
                                     <>
                                         <Button 
-                                            variant=\"destructive\"
+                                            variant="destructive"
                                             onClick={endStreamManually}
                                         >
                                             End Stream
                                         </Button>
                                         <Button
-                                            variant=\"outline\"
+                                            variant="outline"
                                             onClick={() => router.push(playbackUrl)}
                                         >
-                                            <ExternalLink className=\"h-4 w-4 mr-2\" />
+                                            <ExternalLink className="h-4 w-4 mr-2" />
                                             View Stream
                                         </Button>
                                     </>
@@ -297,24 +295,24 @@ export default function GoLivePage() {
                             <CardTitle>Streaming Software Setup</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Tabs defaultValue=\"obs\" className=\"w-full\">
-                                <TabsList className=\"grid w-full grid-cols-3\">
-                                    <TabsTrigger value=\"obs\">OBS Studio</TabsTrigger>
-                                    <TabsTrigger value=\"streamlabs\">Streamlabs</TabsTrigger>
-                                    <TabsTrigger value=\"other\">Other</TabsTrigger>
+                            <Tabs defaultValue="obs" className="w-full">
+                                <TabsList className="grid w-full grid-cols-3">
+                                    <TabsTrigger value="obs">OBS Studio</TabsTrigger>
+                                    <TabsTrigger value="streamlabs">Streamlabs</TabsTrigger>
+                                    <TabsTrigger value="other">Other</TabsTrigger>
                                 </TabsList>
-                                <TabsContent value=\"obs\" className=\"space-y-4 mt-4\">
-                                    <ol className=\"list-decimal list-inside space-y-2 text-sm\">
+                                <TabsContent value="obs" className="space-y-4 mt-4">
+                                    <ol className="list-decimal list-inside space-y-2 text-sm">
                                         <li>Open <strong>OBS Studio</strong></li>
                                         <li>Go to <strong>Settings → Stream</strong></li>
-                                        <li>Set <strong>Service</strong> to \"Custom\"</li>
+                                        <li>Set <strong>Service</strong> to "Custom"</li>
                                         <li>Enter the Server URL and Stream Key from the right panel</li>
                                         <li>Click <strong>Apply</strong> then <strong>OK</strong></li>
                                         <li>Click <strong>Start Streaming</strong> in OBS</li>
                                     </ol>
                                 </TabsContent>
-                                <TabsContent value=\"streamlabs\" className=\"space-y-4 mt-4\">
-                                    <ol className=\"list-decimal list-inside space-y-2 text-sm\">
+                                <TabsContent value="streamlabs" className="space-y-4 mt-4">
+                                    <ol className="list-decimal list-inside space-y-2 text-sm">
                                         <li>Open <strong>Streamlabs OBS</strong></li>
                                         <li>Go to <strong>Settings → Stream</strong></li>
                                         <li>Select <strong>Custom Streaming Server</strong></li>
@@ -323,11 +321,11 @@ export default function GoLivePage() {
                                         <li>Click <strong>Go Live</strong></li>
                                     </ol>
                                 </TabsContent>
-                                <TabsContent value=\"other\" className=\"space-y-4 mt-4\">
-                                    <p className=\"text-sm text-muted-foreground\">
+                                <TabsContent value="other" className="space-y-4 mt-4">
+                                    <p className="text-sm text-muted-foreground">
                                         Most streaming software supports custom RTMP servers. Look for:
                                     </p>
-                                    <ul className=\"list-disc list-inside space-y-2 text-sm\">
+                                    <ul className="list-disc list-inside space-y-2 text-sm">
                                         <li>Custom Stream/Server settings</li>
                                         <li>RTMP URL field (use the Server URL)</li>
                                         <li>Stream Key field</li>
@@ -335,9 +333,9 @@ export default function GoLivePage() {
                                 </TabsContent>
                             </Tabs>
 
-                            <div className=\"mt-6 p-4 bg-muted rounded-lg\">
-                                <p className=\"font-semibold mb-2 text-sm\">Recommended Settings:</p>
-                                <ul className=\"list-disc list-inside space-y-1 text-xs text-muted-foreground\">
+                            <div className="mt-6 p-4 bg-muted rounded-lg">
+                                <p className="font-semibold mb-2 text-sm">Recommended Settings:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
                                     <li>Resolution: 1920x1080 or 1280x720</li>
                                     <li>Bitrate: 4000-6000 Kbps (1080p) or 2500-4000 Kbps (720p)</li>
                                     <li>Encoder: x264 or Hardware (NVENC/AMD)</li>
@@ -350,7 +348,7 @@ export default function GoLivePage() {
                 </div>
 
                 {/* Right Column - Stream Credentials */}
-                <div className=\"space-y-6\">
+                <div className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Stream Credentials</CardTitle>
@@ -358,60 +356,60 @@ export default function GoLivePage() {
                                 Use these in your streaming software
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className=\"space-y-4\">
-                            <div className=\"space-y-2\">
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
                                 <Label>RTMP Server URL</Label>
-                                <div className=\"flex gap-2\">
+                                <div className="flex gap-2">
                                     <Input 
                                         readOnly 
                                         value={serverUrl}
-                                        className=\"bg-muted text-xs\"
+                                        className="bg-muted text-xs"
                                     />
                                     <Button 
-                                        variant=\"outline\" 
-                                        size=\"icon\" 
+                                        variant="outline" 
+                                        size="icon" 
                                         onClick={() => copyToClipboard(serverUrl, 'Server URL')}
                                     >
-                                        {copied ? <Check className=\"h-4 w-4\" /> : <Copy className=\"h-4 w-4\" />}
+                                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                                     </Button>
                                 </div>
                             </div>
 
-                            <div className=\"space-y-2\">
+                            <div className="space-y-2">
                                 <Label>Stream Key</Label>
-                                <div className=\"flex gap-2\">
-                                    <div className=\"relative flex-1\">
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
                                         <Input 
-                                            type={showKey ? \"text\" : \"password\"} 
+                                            type={showKey ? "text" : "password"} 
                                             readOnly 
                                             value={streamKey} 
-                                            className=\"pr-10 text-xs\"
+                                            className="pr-10 text-xs"
                                         />
                                         <button 
-                                            className=\"absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground\"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             onClick={() => setShowKey(!showKey)}
                                         >
-                                            {showKey ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}
+                                            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
                                     <Button 
-                                        variant=\"outline\" 
-                                        size=\"icon\" 
+                                        variant="outline" 
+                                        size="icon" 
                                         onClick={() => copyToClipboard(streamKey, 'Stream key')}
                                     >
-                                        {copied ? <Check className=\"h-4 w-4\" /> : <Copy className=\"h-4 w-4\" />}
+                                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                                     </Button>
                                 </div>
-                                <p className=\"text-xs text-red-500 font-medium\">
+                                <p className="text-xs text-red-500 font-medium">
                                     ⚠️ Never share your stream key
                                 </p>
                                 <Button 
-                                    variant=\"ghost\" 
-                                    size=\"sm\" 
+                                    variant="ghost" 
+                                    size="sm" 
                                     onClick={resetStreamKey}
-                                    className=\"w-full mt-2\"
+                                    className="w-full mt-2"
                                 >
-                                    <RefreshCw className=\"h-4 w-4 mr-2\" />
+                                    <RefreshCw className="h-4 w-4 mr-2" />
                                     Reset Stream Key
                                 </Button>
                             </div>
@@ -421,26 +419,26 @@ export default function GoLivePage() {
                     {currentStream && (
                         <Card>
                             <CardHeader>
-                                <CardTitle className=\"text-base\">Stream Stats</CardTitle>
+                                <CardTitle className="text-base">Stream Stats</CardTitle>
                             </CardHeader>
-                            <CardContent className=\"space-y-3 text-sm\">
-                                <div className=\"flex justify-between\">
-                                    <span className=\"text-muted-foreground\">Status</span>
+                            <CardContent className="space-y-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Status</span>
                                     <span className={`font-semibold ${isLive ? 'text-red-500' : 'text-muted-foreground'}`}>
                                         {isLive ? '🔴 Live' : '⚪ Offline'}
                                     </span>
                                 </div>
-                                <div className=\"flex justify-between\">
-                                    <span className=\"text-muted-foreground\">Current Viewers</span>
-                                    <span className=\"font-semibold\">{viewerCount}</span>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Current Viewers</span>
+                                    <span className="font-semibold">{viewerCount}</span>
                                 </div>
-                                <div className=\"flex justify-between\">
-                                    <span className=\"text-muted-foreground\">Peak Viewers</span>
-                                    <span className=\"font-semibold\">{currentStream.peakViewers || 0}</span>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Peak Viewers</span>
+                                    <span className="font-semibold">{currentStream.peakViewers || 0}</span>
                                 </div>
-                                <div className=\"flex justify-between\">
-                                    <span className=\"text-muted-foreground\">Total Views</span>
-                                    <span className=\"font-semibold\">{currentStream.totalViews || 0}</span>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Total Views</span>
+                                    <span className="font-semibold">{currentStream.totalViews || 0}</span>
                                 </div>
                             </CardContent>
                         </Card>

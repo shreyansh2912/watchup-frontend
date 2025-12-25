@@ -9,25 +9,10 @@ import { Users, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { FILTER_CATEGORIES, POLLING_INTERVALS } from '@/lib/constants';
+import { extractApiData } from '@/lib/stream-utils';
+import type { LiveStream } from '@/types';
 
-const CATEGORIES = [
-    'All', 'Gaming', 'Music', 'Just Chatting', 'Education', 'Sports', 'Art', 'Technology', 'Cooking', 'Other'
-];
-
-interface LiveStream {
-    id: number;
-    title: string;
-    description: string;
-    thumbnailUrl: string | null;
-    category: string;
-    viewerCount: number;
-    startedAt: string;
-    user: {
-        id: number;
-        username: string;
-        avatar: string | null;
-    };
-}
 
 export default function LiveStreamsPage() {
     const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
@@ -36,7 +21,7 @@ export default function LiveStreamsPage() {
 
     useEffect(() => {
         fetchLiveStreams();
-        const interval = setInterval(fetchLiveStreams, 10000); // Refresh every 10 seconds
+        const interval = setInterval(fetchLiveStreams, POLLING_INTERVALS.LIVE_STREAMS);
         return () => clearInterval(interval);
     }, [selectedCategory]);
 
@@ -44,7 +29,7 @@ export default function LiveStreamsPage() {
         try {
             const params = selectedCategory !== 'All' ? { category: selectedCategory } : {};
             const res = await api.get('/stream/live', { params });
-            setLiveStreams(res.data.data || []);
+            setLiveStreams(extractApiData<LiveStream[]>(res) || []);
         } catch (error) {
             console.error('Error fetching live streams:', error);
             if (isLoading) {
@@ -80,7 +65,7 @@ export default function LiveStreamsPage() {
 
             {/* Category Filter */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-                {CATEGORIES.map((cat) => (
+                {FILTER_CATEGORIES.map((cat) => (
                     <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
