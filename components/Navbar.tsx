@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from '@/context/AuthContext';
-import { Search, Upload, User, LogOut, Menu } from 'lucide-react';
+import { Search, Upload, User, LogOut, Menu, Radio } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -100,6 +100,16 @@ export default function Navbar({ toggleSidebar }: { toggleSidebar?: () => void }
               <div className="hidden md:block">
                 <ChannelSwitcher />
               </div>
+
+              {/* Go Live Button */}
+              {activeChannel && (
+                <Link href="/dashboard/go-live">
+                  <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600 text-white">
+                    <Radio className="h-4 w-4" />
+                    <span className="hidden lg:inline">Go Live</span>
+                  </Button>
+                </Link>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
